@@ -1,0 +1,11 @@
+# Java build output
+bin/
+*.class
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# macOS metadata
+.DS_Store
