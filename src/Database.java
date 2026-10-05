@@ -12,7 +12,7 @@ public class Database {
         return DriverManager.getConnection(URL);
     }
 
-    public static void initialize() {
+    public static void initialize() throws SQLException {
         String sql = 
         "CREATE TABLE IF NOT EXISTS publications (" +
         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -36,8 +36,6 @@ public class Database {
         try (Connection connection = getConnection();
              Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
 }
