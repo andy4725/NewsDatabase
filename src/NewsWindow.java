@@ -1,10 +1,15 @@
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JButton;
+import javax.swing.JTextField;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -19,6 +24,8 @@ public class NewsWindow extends JFrame {
     private JList<String> headlineList;
     private JTextArea articleText;
     private JLabel statusLabel;
+    private ArrayList<Publication> visiblePublications;
+    private JTextField searchField;
 
     public NewsWindow() {
         super("News Database");
@@ -28,6 +35,8 @@ public class NewsWindow extends JFrame {
         headlineList = new JList<String>(headlineModel);
         articleText = new JTextArea();
         statusLabel = new JLabel("Waiting for news feeds...");
+        visiblePublications = new ArrayList<Publication>();
+        searchField = new JTextField(18);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 550);
@@ -51,8 +60,20 @@ public class NewsWindow extends JFrame {
         splitPane.setDividerLocation(280);
         splitPane.setResizeWeight(0.3);
 
+        JButton searchButton = new JButton("Search");
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        searchPanel.add(new JLabel("Search headlines:"));
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.add(new JLabel("News Database"), BorderLayout.WEST);
+        headerPanel.add(searchPanel, BorderLayout.EAST);
+
         add(splitPane, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
+        add(headerPanel, BorderLayout.NORTH);
 
         headlineList.addListSelectionListener(new ListSelectionListener() {
             public void valueChanged(ListSelectionEvent event) {
@@ -61,29 +82,20 @@ public class NewsWindow extends JFrame {
                 }
             }
         });
+
+        ActionListener searchAction = new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                filteredHeadlines();
+            }
+        };
+
+        searchButton.addActionListener(searchAction);
+        searchField.addActionListener(searchAction);
     }
 
     public void setPublications(ArrayList<Publication> loadedPublications) {
         publications = loadedPublications;
-        headlineModel.clear();
-
-        for(int i = 0; i < publications.size(); i++) {
-            String title = publications.get(i).getTitle();
-
-            if(title.length() == 0) {
-                title = "(Untitled)";
-            }
-
-            headlineModel.addElement(title);
-        }
-
-        if(publications.size() > 0) {
-            headlineList.setSelectedIndex(0);
-            statusLabel.setText("Loaded" + publications.size() + " items");
-        } else {
-            statusLabel.setText(("No news items were loaded"));
-            statusLabel.setText("No items loaded. Check the console for feed errors.");
-        }
+        filteredHeadlines();
     }
 
     public void setStatus(String message) {
@@ -93,11 +105,11 @@ public class NewsWindow extends JFrame {
     private void showSelectedPublication() {
         int index = headlineList.getSelectedIndex();
 
-        if(index < 0 || index >= publications.size()) {
+        if(index < 0 || index >= visiblePublications.size()) {
             return;
         }
 
-        Publication publication = publications.get(index);
+        Publication publication = visiblePublications.get(index);
         StringBuilder text = new StringBuilder();
 
         text.append(publication.getTitle());
@@ -127,5 +139,42 @@ public class NewsWindow extends JFrame {
 
         articleText.setText(text.toString());
         articleText.setCaretPosition(0);
+    }
+
+    private void filteredHeadlines() {
+        headlineModel.clear();
+        visiblePublications.clear();
+
+        String query = searchField.getText().trim().toLowerCase();
+
+        for (int i = 0; i < publications.size(); i++) {
+            Publication publication = publications.get(i);
+            String title = publication.getTitle();
+
+            if (title == null) {
+                title = "";
+            }
+
+            if (query.length() == 0
+                    || title.toLowerCase().indexOf(query) >= 0) {
+                visiblePublications.add(publication);
+
+                if (title.length() == 0) {
+                    headlineModel.addElement("(Untitled)");
+                } else {
+                    headlineModel.addElement(title);
+                }
+            }
+        }
+
+        if (visiblePublications.size() > 0) {
+            headlineList.setSelectedIndex(0);
+            statusLabel.setText(
+                    "Showing " + visiblePublications.size()
+                    + " of " + publications.size() + " items.");
+        } else {
+            articleText.setText("No matching headlines.");
+            statusLabel.setText("No matching headlines.");
+        }
     }
 }
