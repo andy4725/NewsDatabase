@@ -1,0 +1,17 @@
+{
+    "java.jdt.ls.java.home": "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home",
+    "java.project.sourcePaths": [
+        "src"
+    ],
+    "java.project.outputPath": "bin",
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar"
+    ],
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-25",
+            "path": "/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home",
+            "default": true
+        }
+    ]
+}
