@@ -54,4 +54,42 @@ public class PublicationRepository {
             }
         }
     }
+
+    public void updateNews(News news) throws SQLException {
+        String sql =
+                "UPDATE publications " +
+                "SET title = ?, description = ?, author = ?, source_url = ?, " +
+                "publisher = ?, updated_at = ? " +
+                "WHERE id = ? AND kind = 'NEWS'";
+
+        try (Connection connection = Database.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, news.getTitle());
+            statement.setString(2, news.getDescription());
+            statement.setString(3, news.getAuthor());
+            statement.setString(4, news.getSourceUrl());
+            statement.setString(5, news.getPublisher());
+            statement.setString(6, news.getUpdatedAt().toString());
+            statement.setInt(7, news.getId());
+
+            if (statement.executeUpdate() == 0) {
+                throw new SQLException("Saved news article not found.");
+            }
+        }
+    }
+
+    public void deleteNews(int id) throws SQLException {
+        String sql = "DELETE FROM publications WHERE id = ? AND kind = 'NEWS'";
+
+        try (Connection connection = Database.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, id);
+
+            if (statement.executeUpdate() == 0) {
+                throw new SQLException("Saved news article not found.");
+            }
+        }
+    }
 }
