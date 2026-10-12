@@ -33,35 +33,24 @@ public class App {
     }
 
     public static void loadNews(final NewsWindow window) {
-    window.showLoading();
-    window.setStatus("Loading news feeds...");
+        window.showLoading();
+        window.setStatus("Loading news feeds...");
 
-    SwingWorker<ArrayList<Publication>, Void> worker =
-            new SwingWorker<ArrayList<Publication>, Void>() {
+        SwingWorker<ArrayList<Publication>, Void> worker = new SwingWorker<ArrayList<Publication>, Void>() {
 
-        protected ArrayList<Publication> doInBackground()
-                throws Exception {
-
-            ArrayList<Publication> allPublications =
-                    new ArrayList<Publication>();
-
+        protected ArrayList<Publication> doInBackground() throws Exception {
+            ArrayList<Publication> allPublications = new ArrayList<Publication>();
             RssReader reader = new RssReader();
 
             for (int i = 0; i < SOURCES.length; i++) {
                 try {
-                    ArrayList<Publication> feedItems =
-                            reader.readFeed(SOURCES[i][1], SOURCES[i][0]);
-
+                    ArrayList<Publication> feedItems = reader.readFeed(SOURCES[i][1], SOURCES[i][0]);
                     allPublications.addAll(feedItems);
-
                 } catch (Exception e) {
-                    System.out.println(
-                            "Could not load " + SOURCES[i][0]
-                            + ": " + e.getMessage());
+                    System.out.println("Could not load " + SOURCES[i][0] + ": " + e.getMessage());
                 }
 
-                final int progress =
-                        (int) (((i + 1) * 100.0) / SOURCES.length);
+                final int progress = (int) (((i + 1) * 100.0) / SOURCES.length);
 
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
@@ -83,12 +72,11 @@ public class App {
             } catch (Exception e) {
                 window.setStatus("Could not load the news feeds.");
 
-                System.out.println(
-                        "News loading error: " + e.getMessage());
+                System.out.println("News loading error: " + e.getMessage());
             }
         }
     };
 
     worker.execute();
-}
+    }
 }

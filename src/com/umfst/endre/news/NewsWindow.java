@@ -1,9 +1,12 @@
 package com.umfst.endre.news;
+
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.Dimension;
+import java.awt.Image;
+import java.net.URL;
 import java.util.ArrayList;
 
 import javax.swing.DefaultListModel;
@@ -20,6 +23,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.JProgressBar;
+import javax.swing.ImageIcon;
+import javax.swing.SwingConstants;
 
 public class NewsWindow extends JFrame {
     private ArrayList<Publication> publications;
@@ -32,6 +37,7 @@ public class NewsWindow extends JFrame {
     private JButton reloadButton;
     private JProgressBar progressBar;
     private JLabel loadingLabel;
+    private JLabel imageLabel;
 
     public NewsWindow() {
         super("News Database");
@@ -45,6 +51,10 @@ public class NewsWindow extends JFrame {
         searchField = new JTextField(18);
         reloadButton = new JButton("Reload");
         loadingLabel = new JLabel("Loading...");
+
+        imageLabel = new JLabel();
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        imageLabel.setPreferredSize(new Dimension(300, 180));
 
         progressBar = new JProgressBar();
         progressBar.setStringPainted(true);
@@ -66,10 +76,17 @@ public class NewsWindow extends JFrame {
         leftPanel.add(new JScrollPane(headlineList), BorderLayout.CENTER);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(new JLabel("Article"), BorderLayout.NORTH);
+        rightPanel.add(imageLabel, BorderLayout.NORTH);
+
+        JLabel articleLabel = new JLabel("Article");
+        JPanel articleLabelPanel = new JPanel(new BorderLayout());
+        articleLabelPanel.add(articleLabel, BorderLayout.NORTH);
+        rightPanel.add(articleLabelPanel, BorderLayout.SOUTH);
+
         rightPanel.add(new JScrollPane(articleText), BorderLayout.CENTER);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
         splitPane.setDividerLocation(280);
         splitPane.setResizeWeight(0.3);
 
@@ -100,7 +117,7 @@ public class NewsWindow extends JFrame {
 
         headlineList.addListSelectionListener(new ListSelectionListener() {
             public void valueChanged(ListSelectionEvent event) {
-                if(!event.getValueIsAdjusting()) {
+                if (!event.getValueIsAdjusting()) {
                     showSelectedPublication();
                 }
             }
@@ -165,7 +182,7 @@ public class NewsWindow extends JFrame {
     private void showSelectedPublication() {
         int index = headlineList.getSelectedIndex();
 
-        if(index < 0 || index >= visiblePublications.size()) {
+        if (index < 0 || index >= visiblePublications.size()) {
             return;
         }
 
@@ -176,29 +193,75 @@ public class NewsWindow extends JFrame {
         text.append("\n\nPublisher: ");
         text.append(publication.getPublisher());
 
-        if(publication.getAuthor().length() > 0) {
+        if (publication.getAuthor().length() > 0) {
             text.append("\nAuthor: ");
             text.append(publication.getAuthor());
         }
 
-        if(publication instanceof Event) {
+        if (publication instanceof Event) {
             Event event = (Event) publication;
-            text.append("Event date: ");
+            text.append("\nEvent date: ");
             text.append(event.getEventDateTime());
-            text.append("Location: ");
+            text.append("\nLocation: ");
             text.append(event.getLocation());
         }
 
         text.append("\n\n");
         text.append(publication.getDescription());
 
-        if(publication.getSourceUrl().length() > 0) {
+        if (publication.getSourceUrl().length() > 0) {
             text.append("\n\n");
             text.append(publication.getSourceUrl());
         }
 
         articleText.setText(text.toString());
         articleText.setCaretPosition(0);
+
+        showPublicationImage(publication);
+    }
+
+    private void showPublicationImage(Publication publication) {
+        imageLabel.setIcon(null);
+
+        String urlString = publication.getImageUrl();
+
+        if (urlString == null || urlString.isEmpty()) {
+            return;
+        }
+
+        try {
+            URL url = new URL(urlString);
+            ImageIcon icon = new ImageIcon(url);
+
+            int imgWidth = icon.getIconWidth();
+            int imgHeight = icon.getIconHeight();
+
+            if (imgWidth <= 0 || imgHeight <= 0) {
+                return;
+            }
+
+            int maxWidth = 300;
+            int maxHeight = 180;
+
+            double widthRatio = (double) maxWidth / imgWidth;
+            double heightRatio = (double) maxHeight / imgHeight;
+            double scaleFactor = Math.min(widthRatio, heightRatio);
+
+            if (scaleFactor < 1.0) {
+                int newWidth = (int) (imgWidth * scaleFactor);
+                int newHeight = (int) (imgHeight * scaleFactor);
+
+                Image scaledImg = icon.getImage().getScaledInstance(
+                        newWidth, newHeight, Image.SCALE_SMOOTH);
+
+                icon = new ImageIcon(scaledImg);
+            }
+
+            imageLabel.setIcon(icon);
+
+        } catch (Exception e) {
+            imageLabel.setIcon(null);
+        }
     }
 
     private void filteredHeadlines() {
@@ -234,6 +297,7 @@ public class NewsWindow extends JFrame {
                     + " of " + publications.size() + " items.");
         } else {
             articleText.setText("No matching headlines.");
+            imageLabel.setIcon(null);
             statusLabel.setText("No matching headlines.");
         }
     }

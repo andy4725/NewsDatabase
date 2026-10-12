@@ -8,6 +8,7 @@ public abstract class Publication {
     private String author;
     private String sourceUrl;
     private String publisher;
+    private String imageUrl;
     private Date createdAt;
     private Date updatedAt;
 
@@ -89,5 +90,13 @@ public abstract class Publication {
 
     public void markEdited() {
         this.updatedAt = new Date();
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

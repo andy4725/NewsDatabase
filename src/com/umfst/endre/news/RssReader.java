@@ -1,4 +1,5 @@
 package com.umfst.endre.news;
+
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -48,6 +49,7 @@ public class RssReader {
                 String description = getText(item, "description");
                 String author = getText(item, "author");
                 String link = getText(item, "link");
+                String imageUrl = getImageUrl(item);
                 String eventDateText = getText(item, "eventDateTime");
                 String location = getText(item, "location");
 
@@ -61,6 +63,7 @@ public class RssReader {
                     publication = new News(0, title, description, author, link, publisher);
                 }
 
+                publication.setImageUrl(imageUrl);
                 publications.add(publication);
             }
         } finally {
@@ -84,6 +87,67 @@ public class RssReader {
         }
 
         return nodes.item(0).getTextContent().trim();
+    }
+
+    private String getImageUrl(Element item) {
+        // Check RSS enclosure elements.
+        NodeList enclosures = item.getElementsByTagName("enclosure");
+
+        for(int i = 0; i < enclosures.getLength(); i++) {
+            Element enclosure = (Element) enclosures.item(i);
+            String type = enclosure.getAttribute("type");
+            String url = enclosure.getAttribute("url");
+
+            if(url.length() > 0 && (type.startsWith("image/") || type.length() == 0)) {
+                return url;
+            }
+        }
+
+        // Check media:content and media:thumbnail elements.
+        String[] imageTags = { "media:content", "media:thumbnail" };
+
+        for(int i = 0; i < imageTags.length; i++) {
+            NodeList images = item.getElementsByTagName(imageTags[i]);
+
+            if(images.getLength() > 0) {
+                Element image = (Element) images.item(0);
+                String url = image.getAttribute("url");
+
+                if(url.length() > 0) {
+                    return url;
+                }
+            }
+        }
+
+        // Check for an image inside the description.
+        String description = getText(item, "description");
+        int imgStart = description.indexOf("<img");
+
+        if(imgStart >= 0) {
+            int srcStart = description.indexOf("src=", imgStart);
+
+            if(srcStart >= 0) {
+                srcStart += 4;
+
+                while(srcStart < description.length() && Character.isWhitespace(description.charAt(srcStart))) {
+                    srcStart++;
+                }
+
+                if(srcStart < description.length()) {
+                    char quote = description.charAt(srcStart);
+
+                    if(quote == '\'' || quote == '"') {
+                        int srcEnd = description.indexOf(quote, srcStart + 1);
+
+                        if(srcEnd > srcStart) {
+                            return description.substring(srcStart + 1, srcEnd);
+                        }
+                    }
+                }
+            }
+        }
+
+        return "";
     }
 
     private Date parseEventDate(String dateText) throws Exception {
