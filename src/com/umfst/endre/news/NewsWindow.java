@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -25,6 +26,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.JProgressBar;
 import javax.swing.ImageIcon;
 import javax.swing.SwingConstants;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.parser.ParserDelegator;
 
 public class NewsWindow extends JFrame {
     private ArrayList<Publication> publications;
@@ -193,24 +196,12 @@ public class NewsWindow extends JFrame {
         text.append("\n\nPublisher: ");
         text.append(publication.getPublisher());
 
-        if (publication.getAuthor().length() > 0) {
-            text.append("\nAuthor: ");
-            text.append(publication.getAuthor());
-        }
-
-        if (publication instanceof Event) {
-            Event event = (Event) publication;
-            text.append("\nEvent date: ");
-            text.append(event.getEventDateTime());
-            text.append("\nLocation: ");
-            text.append(event.getLocation());
-        }
-
         text.append("\n\n");
-        text.append(publication.getDescription());
+        text.append(cleanDescription(publication.getDescription()));
 
-        if (publication.getSourceUrl().length() > 0) {
-            text.append("\n\n");
+        if (publication.getSourceUrl() != null
+                && publication.getSourceUrl().length() > 0) {
+            text.append("\n\nWebsite: ");
             text.append(publication.getSourceUrl());
         }
 
@@ -220,12 +211,40 @@ public class NewsWindow extends JFrame {
         showPublicationImage(publication);
     }
 
+    private String cleanDescription(String description) {
+        if (description == null || description.length() == 0) {
+            return "";
+        }
+
+        final StringBuilder text = new StringBuilder();
+
+        try {
+            HTMLEditorKit.ParserCallback callback = new HTMLEditorKit.ParserCallback() {
+                public void handleText(char[] data, int position) {
+                    if (text.length() > 0) {
+                        text.append(' ');
+                    }
+
+                    text.append(data);
+                }
+            };
+
+            new ParserDelegator().parse(
+                    new StringReader(description), callback, true);
+
+        } catch (Exception e) {
+            return description.replaceAll("<[^>]*>", " ").trim();
+        }
+
+        return text.toString().replaceAll("\\s+", " ").trim();
+    }
+
     private void showPublicationImage(Publication publication) {
         imageLabel.setIcon(null);
 
         String urlString = publication.getImageUrl();
 
-        if (urlString == null || urlString.isEmpty()) {
+        if (urlString == null || urlString.length() == 0) {
             return;
         }
 
