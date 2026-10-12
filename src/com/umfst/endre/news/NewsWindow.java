@@ -3,13 +3,11 @@ package com.umfst.endre.news;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.StringReader;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.ArrayList;
 
 import javax.swing.DefaultListModel;
@@ -18,7 +16,6 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -48,6 +45,7 @@ public class NewsWindow extends JFrame {
     private JButton deleteNewsButton;
 
     private Loading loading;
+    private NewsCrud newsCrud;
 
     public NewsWindow() {
         super("News Database");
@@ -67,6 +65,12 @@ public class NewsWindow extends JFrame {
         deleteNewsButton = new JButton("Delete News");
 
         loading = new Loading();
+        newsCrud = new NewsCrud(
+            this,
+            this::getSelectedPublication,
+            this::onNewsCreated,
+            this::onNewsUpdated,
+            this::onNewsDeleted);
 
         imageLabel = new JLabel();
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -138,9 +142,9 @@ public class NewsWindow extends JFrame {
         searchButton.addActionListener(searchAction);
         searchField.addActionListener(searchAction);
 
-        addNewsButton.addActionListener(event -> addNews());
-        editNewsButton.addActionListener(event -> updateNews());
-        deleteNewsButton.addActionListener(event -> deleteNews());
+        addNewsButton.addActionListener(event -> newsCrud.createNews());
+        editNewsButton.addActionListener(event -> newsCrud.updateNews());
+        deleteNewsButton.addActionListener(event -> newsCrud.deleteNews());
 
         reloadButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
@@ -318,220 +322,30 @@ public class NewsWindow extends JFrame {
         }
     }
 
-    private void addNews() {
-        JTextField titleField = new JTextField(30);
-        JTextField publisherField = new JTextField(30);
-        JTextField websiteField = new JTextField(30);
-        JTextArea descriptionArea = new JTextArea(8, 30);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-
-        JPanel form = new JPanel(new GridLayout(0, 1, 0, 6));
-        form.add(new JLabel("Title"));
-        form.add(titleField);
-        form.add(new JLabel("Publisher"));
-        form.add(publisherField);
-        form.add(new JLabel("Website URL"));
-        form.add(websiteField);
-        form.add(new JLabel("Description"));
-        form.add(new JScrollPane(descriptionArea));
-
-        int choice = JOptionPane.showConfirmDialog(
-                this,
-                form,
-                "Add News",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE);
-
-        if (choice != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        String title = titleField.getText().trim();
-        String publisher = publisherField.getText().trim();
-
-        if (title.isEmpty() || publisher.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Title and publisher are required.",
-                    "Missing information",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        News news = new News(
-                0,
-                title,
-                descriptionArea.getText().trim(),
-                "",
-                websiteField.getText().trim(),
-                publisher);
-
-        try {
-            new PublicationRepository().insert(news);
-            publications.add(0, news);
-            filteredHeadlines();
-            headlineList.setSelectedIndex(0);
-            statusLabel.setText("News saved.");
-
-        } catch (SQLException exception) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Could not save the news article: "
-                            + exception.getMessage(),
-                    "Database error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private News getSelectedSavedNews() {
+    private Publication getSelectedPublication() {
         int index = headlineList.getSelectedIndex();
 
         if (index < 0 || index >= visiblePublications.size()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Select a news article first.",
-                    "No article selected",
-                    JOptionPane.WARNING_MESSAGE);
             return null;
         }
 
-        Publication publication = visiblePublications.get(index);
-
-        if (!(publication instanceof News)) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Only news articles can be edited or deleted.",
-                    "Unsupported item",
-                    JOptionPane.WARNING_MESSAGE);
-            return null;
-        }
-
-        News news = (News) publication;
-
-        if (news.getId() <= 0) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Only manually saved news articles can be edited "
-                            + "or deleted.",
-                    "Article is not saved",
-                    JOptionPane.WARNING_MESSAGE);
-            return null;
-        }
-
-        return news;
+        return visiblePublications.get(index);
     }
 
-    private void updateNews() {
-        News news = getSelectedSavedNews();
-
-        if (news == null) {
-            return;
-        }
-
-        JTextField titleField = new JTextField(news.getTitle(), 30);
-        JTextField publisherField = new JTextField(news.getPublisher(), 30);
-        JTextField websiteField = new JTextField(news.getSourceUrl(), 30);
-        JTextArea descriptionArea =
-                new JTextArea(news.getDescription(), 8, 30);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-
-        JPanel form = new JPanel(new GridLayout(0, 1, 0, 6));
-        form.add(new JLabel("Title"));
-        form.add(titleField);
-        form.add(new JLabel("Publisher"));
-        form.add(publisherField);
-        form.add(new JLabel("Website URL"));
-        form.add(websiteField);
-        form.add(new JLabel("Description"));
-        form.add(new JScrollPane(descriptionArea));
-
-        int choice = JOptionPane.showConfirmDialog(
-                this,
-                form,
-                "Edit News",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE);
-
-        if (choice != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        String title = titleField.getText().trim();
-        String publisher = publisherField.getText().trim();
-
-        if (title.isEmpty() || publisher.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Title and publisher are required.",
-                    "Missing information",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        News updatedNews = new News(
-                news.getId(),
-                title,
-                descriptionArea.getText().trim(),
-                news.getAuthor(),
-                websiteField.getText().trim(),
-                publisher);
-        updatedNews.markEdited();
-
-        try {
-            new PublicationRepository().updateNews(updatedNews);
-
-            news.setTitle(updatedNews.getTitle());
-            news.setDescription(updatedNews.getDescription());
-            news.setSourceUrl(updatedNews.getSourceUrl());
-            news.setPublisher(updatedNews.getPublisher());
-            news.setUpdatedAt(updatedNews.getUpdatedAt());
-
-            filteredHeadlines();
-            statusLabel.setText("News updated.");
-
-        } catch (SQLException exception) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Could not update the news article: "
-                            + exception.getMessage(),
-                    "Database error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    private void onNewsCreated(News news) {
+        publications.add(0, news);
+        filteredHeadlines();
+        statusLabel.setText("News saved.");
     }
 
-    private void deleteNews() {
-        News news = getSelectedSavedNews();
+    private void onNewsUpdated(News news) {
+        filteredHeadlines();
+        statusLabel.setText("News updated.");
+    }
 
-        if (news == null) {
-            return;
-        }
-
-        int choice = JOptionPane.showConfirmDialog(
-                this,
-                "Delete \"" + news.getTitle() + "\"?",
-                "Delete News",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-        if (choice != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        try {
-            new PublicationRepository().deleteNews(news.getId());
-            publications.remove(news);
-            filteredHeadlines();
-            statusLabel.setText("News deleted.");
-
-        } catch (SQLException exception) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Could not delete the news article: "
-                            + exception.getMessage(),
-                    "Database error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    private void onNewsDeleted(News news) {
+        publications.remove(news);
+        filteredHeadlines();
+        statusLabel.setText("News deleted.");
     }
 }
