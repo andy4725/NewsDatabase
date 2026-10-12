@@ -1,77 +1,76 @@
 package com.umfst.endre.news;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.Dimension;
-import java.awt.Image;
 import java.io.StringReader;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JButton;
-import javax.swing.JTextField;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.JProgressBar;
-import javax.swing.ImageIcon;
-import javax.swing.SwingConstants;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.parser.ParserDelegator;
-import java.awt.GridLayout;
-import java.sql.SQLException;
-import javax.swing.JOptionPane;
 
 public class NewsWindow extends JFrame {
     private ArrayList<Publication> publications;
+    private ArrayList<Publication> visiblePublications;
+
     private DefaultListModel<String> headlineModel;
     private JList<String> headlineList;
     private JTextArea articleText;
     private JLabel statusLabel;
-    private ArrayList<Publication> visiblePublications;
+    private JLabel imageLabel;
+
     private JTextField searchField;
     private JButton reloadButton;
-    private JProgressBar progressBar;
-    private JLabel loadingLabel;
-    private JLabel imageLabel;
     private JButton addNewsButton;
     private JButton editNewsButton;
     private JButton deleteNewsButton;
+
+    private Loading loading;
 
     public NewsWindow() {
         super("News Database");
 
         publications = new ArrayList<Publication>();
+        visiblePublications = new ArrayList<Publication>();
+
         headlineModel = new DefaultListModel<String>();
         headlineList = new JList<String>(headlineModel);
         articleText = new JTextArea();
         statusLabel = new JLabel("Waiting for news feeds...");
-        visiblePublications = new ArrayList<Publication>();
         searchField = new JTextField(18);
+
         reloadButton = new JButton("Reload");
-        loadingLabel = new JLabel("Loading...");
         addNewsButton = new JButton("Add News");
         editNewsButton = new JButton("Edit News");
         deleteNewsButton = new JButton("Delete News");
 
+        loading = new Loading();
+
         imageLabel = new JLabel();
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setPreferredSize(new Dimension(300, 180));
-
-        progressBar = new JProgressBar();
-        progressBar.setStringPainted(true);
-        progressBar.setIndeterminate(true);
-        progressBar.setPreferredSize(new Dimension(150, 20));
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 550);
@@ -94,11 +93,12 @@ public class NewsWindow extends JFrame {
         JPanel articleLabelPanel = new JPanel(new BorderLayout());
         articleLabelPanel.add(articleLabel, BorderLayout.NORTH);
         rightPanel.add(articleLabelPanel, BorderLayout.SOUTH);
-
         rightPanel.add(new JScrollPane(articleText), BorderLayout.CENTER);
 
         JSplitPane splitPane = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
+                JSplitPane.HORIZONTAL_SPLIT,
+                leftPanel,
+                rightPanel);
         splitPane.setDividerLocation(280);
         splitPane.setResizeWeight(0.3);
 
@@ -113,17 +113,9 @@ public class NewsWindow extends JFrame {
         searchPanel.add(editNewsButton);
         searchPanel.add(deleteNewsButton);
 
-        JPanel progressPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        progressPanel.setPreferredSize(new Dimension(300, 25));
-        progressPanel.add(loadingLabel);
-        progressPanel.add(progressBar);
-
-        loadingLabel.setVisible(false);
-        progressBar.setVisible(false);
-
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.add(searchPanel, BorderLayout.EAST);
-        headerPanel.add(progressPanel, BorderLayout.SOUTH);
+        headerPanel.add(loading, BorderLayout.SOUTH);
 
         add(splitPane, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
@@ -145,6 +137,7 @@ public class NewsWindow extends JFrame {
 
         searchButton.addActionListener(searchAction);
         searchField.addActionListener(searchAction);
+
         addNewsButton.addActionListener(event -> addNews());
         editNewsButton.addActionListener(event -> updateNews());
         deleteNewsButton.addActionListener(event -> deleteNews());
@@ -166,28 +159,15 @@ public class NewsWindow extends JFrame {
     }
 
     public void showLoading() {
-        progressBar.setValue(0);
-        progressBar.setMaximum(100);
-        progressBar.setIndeterminate(false);
-        progressBar.setStringPainted(false);
-
-        loadingLabel.setVisible(true);
-        progressBar.setVisible(true);
-
-        progressBar.getParent().revalidate();
-        progressBar.getParent().repaint();
+        loading.showLoading();
     }
 
     public void setLoadingProgress(int value) {
-        progressBar.setValue(value);
+        loading.setLoadingProgress(value);
     }
 
     public void hideLoading() {
-        loadingLabel.setVisible(false);
-        progressBar.setVisible(false);
-
-        progressBar.getParent().revalidate();
-        progressBar.getParent().repaint();
+        loading.hideLoading();
     }
 
     public void reloadNews() {
@@ -209,7 +189,6 @@ public class NewsWindow extends JFrame {
         text.append(publication.getTitle());
         text.append("\n\nPublisher: ");
         text.append(publication.getPublisher());
-
         text.append("\n\n");
         text.append(cleanDescription(publication.getDescription()));
 
@@ -233,7 +212,8 @@ public class NewsWindow extends JFrame {
         final StringBuilder text = new StringBuilder();
 
         try {
-            HTMLEditorKit.ParserCallback callback = new HTMLEditorKit.ParserCallback() {
+            HTMLEditorKit.ParserCallback callback =
+                    new HTMLEditorKit.ParserCallback() {
                 public void handleText(char[] data, int position) {
                     if (text.length() > 0) {
                         text.append(' ');
@@ -244,9 +224,11 @@ public class NewsWindow extends JFrame {
             };
 
             new ParserDelegator().parse(
-                    new StringReader(description), callback, true);
+                    new StringReader(description),
+                    callback,
+                    true);
 
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return description.replaceAll("<[^>]*>", " ").trim();
         }
 
@@ -266,33 +248,35 @@ public class NewsWindow extends JFrame {
             URL url = new URL(urlString);
             ImageIcon icon = new ImageIcon(url);
 
-            int imgWidth = icon.getIconWidth();
-            int imgHeight = icon.getIconHeight();
+            int imageWidth = icon.getIconWidth();
+            int imageHeight = icon.getIconHeight();
 
-            if (imgWidth <= 0 || imgHeight <= 0) {
+            if (imageWidth <= 0 || imageHeight <= 0) {
                 return;
             }
 
             int maxWidth = 300;
             int maxHeight = 180;
 
-            double widthRatio = (double) maxWidth / imgWidth;
-            double heightRatio = (double) maxHeight / imgHeight;
+            double widthRatio = (double) maxWidth / imageWidth;
+            double heightRatio = (double) maxHeight / imageHeight;
             double scaleFactor = Math.min(widthRatio, heightRatio);
 
             if (scaleFactor < 1.0) {
-                int newWidth = (int) (imgWidth * scaleFactor);
-                int newHeight = (int) (imgHeight * scaleFactor);
+                int newWidth = (int) (imageWidth * scaleFactor);
+                int newHeight = (int) (imageHeight * scaleFactor);
 
-                Image scaledImg = icon.getImage().getScaledInstance(
-                        newWidth, newHeight, Image.SCALE_SMOOTH);
+                Image scaledImage = icon.getImage().getScaledInstance(
+                        newWidth,
+                        newHeight,
+                        Image.SCALE_SMOOTH);
 
-                icon = new ImageIcon(scaledImg);
+                icon = new ImageIcon(scaledImage);
             }
 
             imageLabel.setIcon(icon);
 
-        } catch (Exception e) {
+        } catch (Exception exception) {
             imageLabel.setIcon(null);
         }
     }
@@ -303,8 +287,7 @@ public class NewsWindow extends JFrame {
 
         String query = searchField.getText().trim().toLowerCase();
 
-        for (int i = 0; i < publications.size(); i++) {
-            Publication publication = publications.get(i);
+        for (Publication publication : publications) {
             String title = publication.getTitle();
 
             if (title == null) {
@@ -336,9 +319,9 @@ public class NewsWindow extends JFrame {
     }
 
     private void addNews() {
-        JTextField titleField = new JTextField(10);
-        JTextField publisherField = new JTextField(10);
-        JTextField websiteField = new JTextField(10);
+        JTextField titleField = new JTextField(30);
+        JTextField publisherField = new JTextField(30);
+        JTextField websiteField = new JTextField(30);
         JTextArea descriptionArea = new JTextArea(8, 30);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
@@ -394,7 +377,8 @@ public class NewsWindow extends JFrame {
         } catch (SQLException exception) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Could not save the news article: " + exception.getMessage(),
+                    "Could not save the news article: "
+                            + exception.getMessage(),
                     "Database error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -428,7 +412,8 @@ public class NewsWindow extends JFrame {
         if (news.getId() <= 0) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Only manually saved news articles can be edited or deleted.",
+                    "Only manually saved news articles can be edited "
+                            + "or deleted.",
                     "Article is not saved",
                     JOptionPane.WARNING_MESSAGE);
             return null;
@@ -447,7 +432,8 @@ public class NewsWindow extends JFrame {
         JTextField titleField = new JTextField(news.getTitle(), 30);
         JTextField publisherField = new JTextField(news.getPublisher(), 30);
         JTextField websiteField = new JTextField(news.getSourceUrl(), 30);
-        JTextArea descriptionArea = new JTextArea(news.getDescription(), 8, 30);
+        JTextArea descriptionArea =
+                new JTextArea(news.getDescription(), 8, 30);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
 
@@ -508,7 +494,8 @@ public class NewsWindow extends JFrame {
         } catch (SQLException exception) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Could not update the news article: " + exception.getMessage(),
+                    "Could not update the news article: "
+                            + exception.getMessage(),
                     "Database error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -541,7 +528,8 @@ public class NewsWindow extends JFrame {
         } catch (SQLException exception) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Could not delete the news article: " + exception.getMessage(),
+                    "Could not delete the news article: "
+                            + exception.getMessage(),
                     "Database error",
                     JOptionPane.ERROR_MESSAGE);
         }
