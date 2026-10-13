@@ -8,10 +8,10 @@
         "/Users/endre/Downloads/Egyetem/07. Objektum Orientált Programozás/NewsDatabase/lib/gson-2.8.9.jar"
 
     ],
-    "java.configuration.runtimes": [
+    /*"java.configuration.runtimes": [
     {
         "name": "JavaSE-17",
         "path": "/Library/Java/JavaVirtualMachines/jdk-27.jdk/Contents/Home"
     }
-    ]
+    ]*/
 }

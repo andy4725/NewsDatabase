@@ -59,6 +59,7 @@ public class NewsWindow extends JFrame {
     private JButton addNewsButton;
     private JButton editNewsButton;
     private JButton deleteNewsButton;
+    private JButton clearDatabaseButton;
 
     // Helper objects for loading feeds and managing news CRUD operations.
     private Loading loading;
@@ -79,9 +80,10 @@ public class NewsWindow extends JFrame {
         searchField = new javax.swing.JTextField(18);
 
         reloadButton = new JButton("Reload");
-        addNewsButton = new JButton("Add News");
-        editNewsButton = new JButton("Edit News");
-        deleteNewsButton = new JButton("Delete News");
+        addNewsButton = new JButton("Add");
+        editNewsButton = new JButton("Edit");
+        deleteNewsButton = new JButton("Delete");
+        clearDatabaseButton = new JButton("Clear Database");
 
         loading = new Loading();
 
@@ -187,13 +189,14 @@ public class NewsWindow extends JFrame {
         JButton searchButton = new JButton("Search");
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        searchPanel.add(new JLabel("Search headlines:"));
+        searchPanel.add(new JLabel("Search:"));
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
         searchPanel.add(reloadButton);
         searchPanel.add(addNewsButton);
         searchPanel.add(editNewsButton);
         searchPanel.add(deleteNewsButton);
+        searchPanel.add(clearDatabaseButton);
 
         // Place the controls and loading indicator in the window header.
         JPanel headerPanel = new JPanel(new BorderLayout());
@@ -228,6 +231,7 @@ public class NewsWindow extends JFrame {
         addNewsButton.addActionListener(event -> newsCrud.createNews());
         editNewsButton.addActionListener(event -> newsCrud.updateNews());
         deleteNewsButton.addActionListener(event -> newsCrud.deleteNews());
+        clearDatabaseButton.addActionListener(event -> confirmAndClearDatabase());
 
         // Reload all configured RSS feeds when Reload is clicked.
         reloadButton.addActionListener(new ActionListener() {
@@ -472,6 +476,36 @@ public class NewsWindow extends JFrame {
             articleText.setText("No matching headlines.");
             imageLabel.setIcon(null);
             statusLabel.setText("No matching headlines.");
+        }
+    }
+
+    private void confirmAndClearDatabase() {
+        int choice = javax.swing.JOptionPane.showConfirmDialog(
+                this,
+                "This will permanently delete all saved publications. Continue?",
+                "Clear Database",
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                javax.swing.JOptionPane.WARNING_MESSAGE);
+
+        if (choice != javax.swing.JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            new PublicationRepository().deleteAllFromDatabase();
+
+            // Remove the cleared records from the current display too.
+            publications.clear();
+            searchField.setText("");
+            filteredHeadlines();
+
+            statusLabel.setText("Database cleared.");
+        } catch (java.sql.SQLException exception) {
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
+                    "Could not clear the database: " + exception.getMessage(),
+                    "Database error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
 

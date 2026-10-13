@@ -8,6 +8,46 @@ import java.sql.Statement;
 
 public class PublicationRepository {
 
+    public int insertToDatabaseIfMissing(Publication publication) throws SQLException {
+        String kind;
+
+        if (publication instanceof Event) {
+            kind = "EVENT";
+        } else if (publication instanceof News) {
+            kind = "NEWS";
+        } else {
+            throw new IllegalArgumentException("Unsupported publication type");
+        }
+
+        String sourceUrl = publication.getSourceUrl();
+
+        // Use the source URL to recognize articles already saved.
+        if (sourceUrl != null && !sourceUrl.trim().isEmpty()) {
+            String findSql =
+                    "SELECT id FROM publications " +
+                    "WHERE kind = ? AND source_url = ?";
+
+            try (Connection connection = Database.getConnection();
+                PreparedStatement statement =
+                        connection.prepareStatement(findSql)) {
+
+                statement.setString(1, kind);
+                statement.setString(2, sourceUrl);
+
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) {
+                        int existingId = result.getInt("id");
+                        publication.setId(existingId);
+                        return existingId;
+                    }
+                }
+            }
+        }
+
+        return insert(publication);
+    }
+
+
     // Insert a news article or event into the publications table.
     // Returns the new database ID and assigns it to the publication object.
     public int insert(Publication publication) throws SQLException {
@@ -117,6 +157,15 @@ public class PublicationRepository {
             if (statement.executeUpdate() == 0) {
                 throw new SQLException("Saved news article not found.");
             }
+        }
+    }
+
+    public void deleteAllFromDatabase() throws SQLException {
+        String sql = "DELETE FROM publications";
+
+        try (Connection connection = Database.getConnection();
+            Statement statement = connection.createStatement()) {
+            statement.executeUpdate(sql);
         }
     }
 }

@@ -12,7 +12,6 @@ import javax.swing.SwingWorker;
 import com.google.gson.Gson;
 
 public class App {
-
     public static void main(String[] args) throws Exception {
         // Set up the database before the app starts.
         Database.initialize();
@@ -37,8 +36,9 @@ public class App {
         SwingWorker<ArrayList<Publication>, Void> worker =
                 new SwingWorker<ArrayList<Publication>, Void>() {
 
-            protected ArrayList<Publication> doInBackground()
-                    throws Exception {
+            protected ArrayList<Publication> doInBackground() throws Exception {
+                PublicationRepository repository = new PublicationRepository();
+
                 ArrayList<Publication> allPublications =
                         new ArrayList<Publication>();
                 RssReader reader = new RssReader();
@@ -49,10 +49,16 @@ public class App {
                 // Load each feed and collect its publications.
                 for (int i = 0; i < sources.length; i++) {
                     try {
-                        ArrayList<Publication> feedItems =
-                                reader.readFeed(
-                                        sources[i].url,
-                                        sources[i].publisher);
+                        ArrayList<Publication> feedItems = reader.readFeed(sources[i].url, sources[i].publisher);
+
+                        for (Publication publication : feedItems) {
+                            try {
+                                repository.insertToDatabaseIfMissing(publication);
+                            } catch (Exception e) {
+                                System.out.println("Could not save article: " + e.getMessage());
+                            }
+                        }
+
                         allPublications.addAll(feedItems);
                     } catch (Exception e) {
                         System.out.println(
