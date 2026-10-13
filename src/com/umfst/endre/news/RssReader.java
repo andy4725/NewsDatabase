@@ -6,6 +6,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.net.URI;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -28,7 +29,7 @@ public class RssReader {
 
         try {
             // Open a connection to the feed URL.
-            URL url = new URL(feedUrl);
+            URL url = URI.create(feedUrl).toURL();
             connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);

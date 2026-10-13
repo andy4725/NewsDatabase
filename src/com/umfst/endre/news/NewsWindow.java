@@ -12,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.net.URI;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
@@ -397,7 +398,7 @@ public class NewsWindow extends JFrame {
         }
 
         try {
-            URL url = new URL(urlString);
+            URL url = URI.create(urlString).toURL();
             ImageIcon icon = new ImageIcon(url);
 
             int imageWidth = icon.getIconWidth();
