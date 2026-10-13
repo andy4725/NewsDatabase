@@ -1,0 +1,38 @@
+[
+  {
+    "publisher": "Info Mures",
+    "url": "https://stiri.infomures.ro/feed/"
+  },
+  {
+    "publisher": "Zi de Zi",
+    "url": "https://www.zi-de-zi.ro/feed/"
+  },
+  {
+    "publisher": "Punctul",
+    "url": "https://punctul.ro/feed/"
+  },
+  {
+    "publisher": "Radio Mures",
+    "url": "https://www.radiomures.ro/feed/"
+  },
+  {
+    "publisher": "KPTV News",
+    "url": "https://news.kptv.ro/feed/"
+  },
+  {
+    "publisher": "laTarguMures",
+    "url": "https://latargumures.ro/feed/"
+  },
+  {
+    "publisher": "Vasarhely.ma",
+    "url": "https://www.vasarhely.ma/feed/"
+  },
+  {
+    "publisher": "Marosvasarhelyi.info",
+    "url": "https://marosvasarhelyi.info/feed/"
+  },
+  {
+    "publisher": "Marosvasarhelyi Radio",
+    "url": "https://www.marosvasarhelyiradio.ro/hirek_kategoria/a-nap-hirei/feed/"
+  }
+]

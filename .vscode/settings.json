@@ -4,7 +4,9 @@
     ],
     "java.project.outputPath": "bin",
     "java.project.referencedLibraries": [
-        "/Users/endre/Downloads/Egyetem/07. Objektum Orientált Programozás/NewsDatabase/lib/sqlite-jdbc-3.53.4.0.jar"
+        "/Users/endre/Downloads/Egyetem/07. Objektum Orientált Programozás/NewsDatabase/lib/sqlite-jdbc-3.53.4.0.jar",
+        "/Users/endre/Downloads/Egyetem/07. Objektum Orientált Programozás/NewsDatabase/lib/gson-2.8.9.jar"
+
     ],
     "java.configuration.runtimes": [
     {

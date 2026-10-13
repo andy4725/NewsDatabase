@@ -1,45 +1,35 @@
 package com.umfst.endre.news;
 
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-public class App {
+import com.google.gson.Gson;
 
-    // Each row contains a publisher name and its RSS feed URL.
-    private static final String[][] SOURCES = {
-        { "Info Mures", "https://stiri.infomures.ro/feed/" },
-        { "Zi de Zi", "https://www.zi-de-zi.ro/feed/" },
-        { "Punctul", "https://punctul.ro/feed/" },
-        { "Radio Mures", "https://www.radiomures.ro/feed/" },
-        { "KPTV News", "https://news.kptv.ro/feed/" },
-        { "laTarguMures", "https://latargumures.ro/feed/" },
-        { "Vasarhely.ma", "https://www.vasarhely.ma/feed/" },
-        { "Marosvasarhelyi.info",
-          "https://marosvasarhelyi.info/feed/" },
-        { "Marosvasarhelyi Radio",
-          "https://www.marosvasarhelyiradio.ro/hirek_kategoria/a-nap-hirei/feed/" }
-    };
+public class App {
 
     public static void main(String[] args) throws Exception {
         // Set up the database before the app starts.
         Database.initialize();
 
-        // Create and show Swing components on Swing's UI thread.
+        // Create Swing components on Swing's UI thread.
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 final NewsWindow window = new NewsWindow();
                 window.setVisible(true);
 
-                // Start loading news after the window is displayed.
+                // Load the feeds after showing the window.
                 loadNews(window);
             }
         });
     }
 
     public static void loadNews(final NewsWindow window) {
-        // Show the loading indicator and update the status message.
         window.showLoading();
         window.setStatus("Loading news feeds...");
 
@@ -47,30 +37,34 @@ public class App {
         SwingWorker<ArrayList<Publication>, Void> worker =
                 new SwingWorker<ArrayList<Publication>, Void>() {
 
-            // This method runs in the background thread.
             protected ArrayList<Publication> doInBackground()
                     throws Exception {
                 ArrayList<Publication> allPublications =
                         new ArrayList<Publication>();
                 RssReader reader = new RssReader();
 
-                // Read each RSS feed and collect its publications.
-                for (int i = 0; i < SOURCES.length; i++) {
+                // Read the feed source list from rss-sources.json.
+                RssSource[] sources = loadSources();
+
+                // Load each feed and collect its publications.
+                for (int i = 0; i < sources.length; i++) {
                     try {
                         ArrayList<Publication> feedItems =
-                                reader.readFeed(SOURCES[i][1], SOURCES[i][0]);
+                                reader.readFeed(
+                                        sources[i].url,
+                                        sources[i].publisher);
                         allPublications.addAll(feedItems);
                     } catch (Exception e) {
-                        // Report a feed error and continue with the others.
-                        System.out.println("Could not load "
-                                + SOURCES[i][0] + ": " + e.getMessage());
+                        System.out.println(
+                                "Could not load "
+                                + sources[i].publisher + ": "
+                                + e.getMessage());
                     }
 
-                    // Calculate progress as a percentage of feeds processed.
+                    // Update progress based on how many feeds were processed.
                     final int progress =
-                            (int) (((i + 1) * 100.0) / SOURCES.length);
+                            (int) (((i + 1) * 100.0) / sources.length);
 
-                    // Update the progress indicator on Swing's UI thread.
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             window.setLoadingProgress(progress);
@@ -81,24 +75,41 @@ public class App {
                 return allPublications;
             }
 
-            // This method runs on Swing's UI thread when loading finishes.
             protected void done() {
                 window.hideLoading();
 
                 try {
-                    // get() retrieves the list returned by doInBackground().
                     window.setPublications(get());
                     window.setStatus("News loaded.");
                 } catch (Exception e) {
-                    // Update the UI and log an error if loading failed.
                     window.setStatus("Could not load the news feeds.");
-                    System.out.println("News loading error: "
-                            + e.getMessage());
+                    System.out.println(
+                            "News loading error: " + e.getMessage());
                 }
             }
         };
 
-        // Start the background loading task.
         worker.execute();
+    }
+
+    // Read and parse the JSON array of RSS sources.
+    private static RssSource[] loadSources() throws Exception {
+        Gson gson = new Gson();
+
+        try (Reader reader = Files.newBufferedReader(
+                Paths.get("rss_sources.json"),
+                StandardCharsets.UTF_8)) {
+
+            RssSource[] sources = gson.fromJson(reader, RssSource[].class);
+
+            // Treat an empty JSON file or JSON null as an empty source list.
+            return sources == null ? new RssSource[0] : sources;
+        }
+    }
+
+    // Gson fills these fields from each object in the JSON array.
+    private static class RssSource {
+        private String publisher;
+        private String url;
     }
 }
