@@ -13,6 +13,8 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
@@ -61,6 +63,7 @@ public class NewsWindow extends JFrame {
     private JButton editNewsButton;
     private JButton deleteNewsButton;
     private JButton clearDatabaseButton;
+    private Set<Publication> readPublications = new HashSet<Publication>();
 
     // Helper objects for loading feeds and managing news CRUD operations.
     private Loading loading;
@@ -129,7 +132,12 @@ public class NewsWindow extends JFrame {
                         + "</div></html>");
 
                 // Set the headline font and add space around the text.
-                setFont(list.getFont().deriveFont(Font.PLAIN, 14f));
+                boolean isRead = index >= 0
+                    && index < visiblePublications.size()
+                    && readPublications.contains(visiblePublications.get(index));
+
+            setFont(list.getFont().deriveFont(
+                    isRead ? Font.PLAIN : Font.BOLD, 14f));
                 setBorder(javax.swing.BorderFactory.createEmptyBorder(
                         9, 10, 9, 10));
 
@@ -285,6 +293,8 @@ public class NewsWindow extends JFrame {
         }
 
         Publication publication = visiblePublications.get(index);
+        readPublications.add(publication);
+        headlineList.repaint();
         StyledDocument doc = articleText.getStyledDocument();
 
         // Define text styles for the title, field labels, and article body.

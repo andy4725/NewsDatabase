@@ -78,7 +78,7 @@ public class App {
                     });
                 }
 
-                return allPublications;
+                return repository.findAll();
             }
 
             protected void done() {

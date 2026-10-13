@@ -1,6 +1,5 @@
 package com.umfst.endre.news;
 
-import java.awt.GridLayout;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -12,6 +11,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Dimension;
 
 public class NewsCrud {
     // The window used as the parent for dialogs.
@@ -168,7 +171,6 @@ public class NewsCrud {
 
     // Display the add/edit form and return its values if the user accepts.
     private NewsForm showNewsForm(String dialogTitle, News existingNews) {
-        // Use blank values for a new article, or existing values when editing.
         String title = existingNews == null ? "" : existingNews.getTitle();
         String publisher = existingNews == null
                 ? "" : existingNews.getPublisher();
@@ -177,25 +179,70 @@ public class NewsCrud {
         String description = existingNews == null
                 ? "" : existingNews.getDescription();
 
-        JTextField titleField = new JTextField(title, 30);
-        JTextField publisherField = new JTextField(publisher, 30);
-        JTextField websiteField = new JTextField(website, 30);
+        // Shorter fields and a smaller description box reduce dialog size.
+        JTextField titleField = new JTextField(title, 22);
+        JTextField publisherField = new JTextField(publisher, 22);
+        JTextField websiteField = new JTextField(website, 22);
 
-        // Allow long descriptions to wrap and scroll.
-        JTextArea descriptionArea = new JTextArea(description, 8, 30);
+        JTextArea descriptionArea = new JTextArea(description, 5, 22);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
 
-        // Arrange labels and input fields vertically in the dialog.
-        JPanel form = new JPanel(new GridLayout(0, 1, 0, 6));
-        form.add(new JLabel("Title"));
-        form.add(titleField);
-        form.add(new JLabel("Publisher"));
-        form.add(publisherField);
-        form.add(new JLabel("Website URL"));
-        form.add(websiteField);
-        form.add(new JLabel("Description"));
-        form.add(new JScrollPane(descriptionArea));
+        JScrollPane descriptionScroll = new JScrollPane(descriptionArea);
+        descriptionScroll.setPreferredSize(new Dimension(320, 100));
+
+        // Put labels in the left column and inputs in the right column.
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.insets = new Insets(5, 5, 5, 5);
+        constraints.anchor = GridBagConstraints.WEST;
+
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        form.add(new JLabel("Title:"), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        form.add(titleField, constraints);
+
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        form.add(new JLabel("Publisher:"), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        form.add(publisherField, constraints);
+
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        form.add(new JLabel("Website URL:"), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        form.add(websiteField, constraints);
+
+        constraints.gridx = 0;
+        constraints.gridy = 3;
+        constraints.weightx = 0;
+        constraints.weighty = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.anchor = GridBagConstraints.NORTHWEST;
+        form.add(new JLabel("Description:"), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 1;
+        constraints.weighty = 1;
+        constraints.fill = GridBagConstraints.BOTH;
+        form.add(descriptionScroll, constraints);
 
         int choice = JOptionPane.showConfirmDialog(
                 parent,
@@ -204,16 +251,13 @@ public class NewsCrud {
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
 
-        // Return null if the user cancels the dialog.
         if (choice != JOptionPane.OK_OPTION) {
             return null;
         }
 
-        // Remove extra whitespace from the required fields.
         String enteredTitle = titleField.getText().trim();
         String enteredPublisher = publisherField.getText().trim();
 
-        // Title and publisher must be provided.
         if (enteredTitle.isEmpty() || enteredPublisher.isEmpty()) {
             showMessage(
                     "Title and publisher are required.",
@@ -221,7 +265,6 @@ public class NewsCrud {
             return null;
         }
 
-        // Bundle the form values for the create or update method.
         return new NewsForm(
                 enteredTitle,
                 enteredPublisher,

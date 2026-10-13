@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 public class PublicationRepository {
 
@@ -166,6 +167,65 @@ public class PublicationRepository {
         try (Connection connection = Database.getConnection();
             Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
+        }
+    }
+
+    public ArrayList<Publication> findAll() throws SQLException {
+        ArrayList<Publication> publications = new ArrayList<Publication>();
+
+        String sql =
+                "SELECT id, kind, title, description, author, source_url, " +
+                "publisher, event_datetime, location " +
+                "FROM publications ORDER BY id DESC";
+
+        try (Connection connection = Database.getConnection();
+            Statement statement = connection.createStatement();
+            ResultSet result = statement.executeQuery(sql)) {
+
+            while (result.next()) {
+                int id = result.getInt("id");
+                String kind = result.getString("kind");
+                String title = result.getString("title");
+                String description = result.getString("description");
+                String author = result.getString("author");
+                String sourceUrl = result.getString("source_url");
+                String publisher = result.getString("publisher");
+
+                if ("EVENT".equals(kind)) {
+                    Event event = new Event(
+                            id,
+                            title,
+                            description,
+                            author,
+                            sourceUrl,
+                            publisher,
+                            parseStoredDate(result.getString("event_datetime")),
+                            result.getString("location"));
+
+                    publications.add(event);
+                } else {
+                    publications.add(new News(
+                            id,
+                            title,
+                            description,
+                            author,
+                            sourceUrl,
+                            publisher));
+                }
+            }
+        }
+
+        return publications;
+    }
+
+    private java.util.Date parseStoredDate(String dateText)
+            throws SQLException {
+        try {
+            return new java.text.SimpleDateFormat(
+                    "EEE MMM dd HH:mm:ss zzz yyyy",
+                    java.util.Locale.ENGLISH).parse(dateText);
+        } catch (java.text.ParseException exception) {
+            throw new SQLException("Could not read a saved event date.", exception);
         }
     }
 }
