@@ -1,4 +1,5 @@
 package com.umfst.endre.news;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -6,29 +7,38 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class PublicationRepository {
+
+    // Insert a news article or event into the publications table.
+    // Returns the new database ID and assigns it to the publication object.
     public int insert(Publication publication) throws SQLException {
         String kind;
         String eventDateTime = null;
         String location = null;
 
-        if(publication instanceof Event event) {
+        // Identify the publication type and retrieve event-specific values.
+        if (publication instanceof Event event) {
             kind = "EVENT";
             eventDateTime = event.getEventDateTime().toString();
             location = event.getLocation();
-        } else if(publication instanceof News) {
+        } else if (publication instanceof News) {
             kind = "NEWS";
         } else {
+            // Reject any Publication subclass this repository does not support.
             throw new IllegalArgumentException("Unsupported publication type");
         }
 
-        String sql = 
+        // Use placeholders so values can be safely passed to the SQL statement.
+        String sql =
             "INSERT INTO publications " +
             "(kind, title, description, author, source_url, publisher, " +
             "created_at, updated_at, event_datetime, location) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+        // Automatically close the connection and statement after use.
         try (Connection connection = Database.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            // Set the values for the placeholders in the INSERT statement.
             statement.setString(1, kind);
             statement.setString(2, publication.getTitle());
             statement.setString(3, publication.getDescription());
@@ -39,22 +49,31 @@ public class PublicationRepository {
             statement.setString(8, publication.getUpdatedAt().toString());
             statement.setString(9, eventDateTime);
             statement.setString(10, location);
-            statement.executeUpdate();  
-            
+
+            // Execute the INSERT and store the new row in the database.
+            statement.executeUpdate();
+
+            // SQLite's last_insert_rowid() returns the ID just created
+            // on this database connection.
             try (Statement idQuery = connection.createStatement();
                  ResultSet result = idQuery.executeQuery(
-                 "SELECT last_insert_rowid()")) {
-                    if(!result.next()) {
-                        throw new SQLException("Could not retrieve the new row ID.");
-                    }
+                         "SELECT last_insert_rowid()")) {
 
-                    int id = result.getInt(1);
-                    publication.setId(id);
-                    return id;
+                if (!result.next()) {
+                    throw new SQLException(
+                            "Could not retrieve the new row ID.");
+                }
+
+                int id = result.getInt(1);
+
+                // Keep the in-memory object in sync with the database.
+                publication.setId(id);
+                return id;
             }
         }
     }
 
+    // Update the saved fields of a news article with the matching ID.
     public void updateNews(News news) throws SQLException {
         String sql =
                 "UPDATE publications " +
@@ -63,8 +82,10 @@ public class PublicationRepository {
                 "WHERE id = ? AND kind = 'NEWS'";
 
         try (Connection connection = Database.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
 
+            // Set the updated article values and the ID to match.
             statement.setString(1, news.getTitle());
             statement.setString(2, news.getDescription());
             statement.setString(3, news.getAuthor());
@@ -73,20 +94,26 @@ public class PublicationRepository {
             statement.setString(6, news.getUpdatedAt().toString());
             statement.setInt(7, news.getId());
 
+            // executeUpdate returns the number of rows changed.
+            // Zero means no saved news article matched this ID.
             if (statement.executeUpdate() == 0) {
                 throw new SQLException("Saved news article not found.");
             }
         }
     }
 
+    // Delete a saved news article by ID.
     public void deleteNews(int id) throws SQLException {
-        String sql = "DELETE FROM publications WHERE id = ? AND kind = 'NEWS'";
+        String sql =
+                "DELETE FROM publications WHERE id = ? AND kind = 'NEWS'";
 
         try (Connection connection = Database.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
 
             statement.setInt(1, id);
 
+            // If no row was deleted, the requested article was not found.
             if (statement.executeUpdate() == 0) {
                 throw new SQLException("Saved news article not found.");
             }

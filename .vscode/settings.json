@@ -4,13 +4,12 @@
     ],
     "java.project.outputPath": "bin",
     "java.project.referencedLibraries": [
-        "lib/**/*.jar"
+        "/Users/endre/Downloads/Egyetem/07. Objektum Orientált Programozás/NewsDatabase/lib/sqlite-jdbc-3.53.4.0.jar"
     ],
     "java.configuration.runtimes": [
-        {
-            "name": "JavaSE-17",
-            "path": "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
-            "default": true
-        }
+    {
+        "name": "JavaSE-17",
+        "path": "/Library/Java/JavaVirtualMachines/jdk-27.jdk/Contents/Home"
+    }
     ]
 }
